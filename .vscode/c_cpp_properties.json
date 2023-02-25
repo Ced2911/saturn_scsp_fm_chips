@@ -1,0 +1,39 @@
+{
+    "configurations": [
+        {
+            "name": "yaul",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/opt/tool-chains/sh2eb-elf/sh2eb-elf/include/",
+                "/opt/tool-chains/sh2eb-elf/sh2eb-elf/include/yaul/",
+                "/opt/tool-chains/sh2eb-elf/sh2eb-elf/include/yaul/**"
+            ],
+            "defines": [
+                "FENRIR_LOADER"
+            ],
+            "compilerPath": "/opt/tool-chains/sh2eb-elf/bin/sh2eb-elf-gcc",
+            "compilerArgs": [
+                "-ffreestanding",
+                "-m2",
+                "-mb"
+            ],
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compileCommands": "${workspaceFolder}/compile_commands.json",
+            "configurationProvider": "ms-vscode.makefile-tools"
+        },
+        {
+            "name": "linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/sbin/gcc",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}
