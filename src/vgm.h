@@ -11,9 +11,10 @@ typedef struct vgm_player_s
     uint32_t pcmpos;
     uint32_t pcmoffset;
 
-    uint32_t clock_ym2203;
-    uint32_t clock_ym2151;
     uint32_t clock_sn76;
+    uint32_t clock_ym2413;
+    uint32_t clock_ym2151;
+    uint32_t clock_ym2203;
 
     int sampled;
     int sample_count;

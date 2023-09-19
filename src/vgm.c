@@ -11,6 +11,16 @@
 #include "notes.h"
 #include "chips/chips.h"
 
+// chips clocks
+#define VGM_OFFSET_SN76489_CLOCK (0x0C)
+#define VGM_OFFSET_YM2413_CLOCK (0x10)
+#define VGM_OFFSET_YM2151_CLOCK (0x30)
+#define VGM_OFFSET_YM2203_CLOCK (0x44)
+
+//
+#define VGM_OFFSET_LOOP_OFFSET (0x1C)
+#define VGM_OFFSET_DATA_OFFSET (0x34)
+
 #define SAMPLING_RATE 44100
 
 uint8_t get_vgm_ui8(vgm_player_t *vgm_player)
@@ -38,6 +48,7 @@ void vgm_restart(vgm_player_t *vgm_player)
    }
 }
 
+// https://vgmrips.net/wiki/VGM_Specification
 uint16_t vgm_parse(vgm_player_t *vgm_player)
 {
    uint8_t command;
@@ -66,6 +77,13 @@ uint16_t vgm_parse(vgm_player_t *vgm_player)
       dat = get_vgm_ui8(vgm_player);
       sn76496_w(dat);
       break;
+      // 0x51	aa dd	YM2413, write value dd to register aa
+   case 0x51:
+      reg = get_vgm_ui8(vgm_player);
+      dat = get_vgm_ui8(vgm_player);
+      ym2413_w(reg, dat);
+      break;
+
       // YM2612 port 0 - 1
    case 0x52:
    case 0x53:
@@ -121,7 +139,7 @@ uint16_t vgm_parse(vgm_player_t *vgm_player)
          uint32_t rom_size = get_vgm_ui32(vgm_player);
          uint32_t rom_off = get_vgm_ui32(vgm_player);
          uint32_t rom_len = size - 8;
-         dbgio_printf("oki m6295 data %04x %04x %04x\n", rom_size, rom_off, rom_len);
+         emu_printf("oki m6295 data %04x %04x %04x\n", rom_size, rom_off, rom_len);
          break;
       default:
          break;
@@ -190,12 +208,18 @@ uint16_t vgm_parse(vgm_player_t *vgm_player)
 
    if (vgm_player->vgmend)
    {
-      vgm_player->pcmpos = 0x34;
-      vgm_player->vgmpos = 0x34 + get_vgm_ui32(vgm_player);
+      vgm_player->vgmpos = vgm_player->vgmloopoffset;
       vgm_player->vgmend = 0;
    }
    vgm_player->cycles += wait;
    return wait;
+}
+
+static uint32_t vgm_read_ui32(vgm_player_t *vgm_player, uint32_t off)
+{
+
+   vgm_player->vgmpos = off;
+   return get_vgm_ui32(vgm_player);
 }
 
 static void vgm_parse_header(vgm_player_t *vgm_player)
@@ -204,20 +228,14 @@ static void vgm_parse_header(vgm_player_t *vgm_player)
    vgm_player->vgmend = 0;
 
    // parse header
-   vgm_player->vgmpos = 0x44;
-   vgm_player->clock_ym2203 = get_vgm_ui32(vgm_player);
+   vgm_player->clock_sn76 = vgm_read_ui32(vgm_player, VGM_OFFSET_SN76489_CLOCK);
+   vgm_player->clock_ym2413 = vgm_read_ui32(vgm_player, VGM_OFFSET_YM2413_CLOCK);
+   vgm_player->clock_ym2151 = vgm_read_ui32(vgm_player, VGM_OFFSET_YM2151_CLOCK);
+   vgm_player->clock_ym2203 = vgm_read_ui32(vgm_player, VGM_OFFSET_YM2203_CLOCK);
 
-   vgm_player->vgmpos = 0x30;
-   vgm_player->clock_ym2151 = get_vgm_ui32(vgm_player);
+   vgm_player->vgmloopoffset = vgm_read_ui32(vgm_player, VGM_OFFSET_LOOP_OFFSET);
 
-   vgm_player->vgmpos = 0x0C;
-   vgm_player->clock_sn76 = get_vgm_ui32(vgm_player);
-
-   vgm_player->vgmpos = 0x1c;
-   vgm_player->vgmloopoffset = get_vgm_ui32(vgm_player);
-
-   vgm_player->vgmpos = 0x34;
-   uint32_t offset = get_vgm_ui32(vgm_player);
+   uint32_t offset = vgm_read_ui32(vgm_player, VGM_OFFSET_DATA_OFFSET);
    if (offset == 0)
    {
       vgm_player->vgmpos = 0x40;
@@ -234,14 +252,23 @@ static void vgm_parse_header(vgm_player_t *vgm_player)
    //    ym2203_init();
 
    if (vgm_player->clock_sn76)
+   {
+      emu_printf("Init sn76496\n");
       sn76496_init();
+   }
+
+   if (vgm_player->clock_ym2413)
+   {
+      emu_printf("Init ym2413\n");
+      ym2413_init();
+   }
+
+   emu_printf("loopoffset = %d\n", vgm_player->vgmloopoffset);
+   emu_printf("vgmpos = %d\n", vgm_player->vgmpos);
 
    if (vgm_player->clock_ym2203 == 0)
       vgm_player->clock_ym2203 = 3000000; // 4000000;
 }
-
-/* C:\Users\cc\Downloads\DefleMask_Legacy_Windows (1)\a4_sms.vgm (05/02/2023 12:43:21)
-   DébutPosition(h): 00000000, FinPosition(h): 000000E7, Longueur(h): 000000E8 */
 
 unsigned char a4_sms[232] = {
     0x56, 0x67, 0x6D, 0x20, 0xE4, 0x00, 0x00, 0x00, 0x50, 0x01, 0x00, 0x00,
@@ -279,7 +306,6 @@ int vgm_init(vgm_player_t *vgm_player, uint8_t *vgm_track)
    vgm_player->cycles_played = 0;
 
    emu_printf("vgm_player->vgmloopoffset 0x%x\n", vgm_player->vgmloopoffset);
-   dbgio_printf("vgm_player->vgmloopoffset 0x%x\n", vgm_player->vgmloopoffset);
 
    return 0;
 }

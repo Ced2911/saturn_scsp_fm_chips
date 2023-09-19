@@ -41,12 +41,14 @@ void _vgm_play_track(const uint8_t *track);
 _TRACK_FN(alexkidd_sn);
 _TRACK_FN(mj_smooth_sn);
 _TRACK_FN(sonic_sn76496);
+_TRACK_FN(aleste_2_op_msx2);
 
 static smpc_peripheral_digital_t _digital;
 static menu_entry_t _menu_entries[] = {
     MENU_ACTION_ENTRY("SN: Alex Kidd", track_play_alexkidd_sn),
     MENU_ACTION_ENTRY("SN: Smooth Criminal", track_play_mj_smooth_sn),
-    MENU_ACTION_ENTRY("SN: Sonic", track_play_sonic_sn76496)};
+    MENU_ACTION_ENTRY("SN: Sonic", track_play_sonic_sn76496),
+    MENU_ACTION_ENTRY("YM2413: Aleste 2", track_play_aleste_2_op_msx2)};
 
 static void _menu_input(menu_t *menu)
 {
